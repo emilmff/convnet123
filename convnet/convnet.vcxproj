@@ -146,13 +146,11 @@
     <ClInclude Include="cnn.h" />
     <ClInclude Include="datamanager.h" />
     <ClInclude Include="layer.h" />
-    <ClInclude Include="nn.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cnn.cpp" />
     <ClCompile Include="datamanager.cpp" />
     <ClCompile Include="layer.cpp" />
-    <ClCompile Include="nn.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

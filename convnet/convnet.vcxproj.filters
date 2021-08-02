@@ -18,9 +18,6 @@
     <ClInclude Include="datamanager.h">
       <Filter>Hlavičkové soubory</Filter>
     </ClInclude>
-    <ClInclude Include="nn.h">
-      <Filter>Hlavičkové soubory</Filter>
-    </ClInclude>
     <ClInclude Include="cnn.h">
       <Filter>Hlavičkové soubory</Filter>
     </ClInclude>
@@ -29,9 +26,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="nn.cpp">
-      <Filter>Zdrojové soubory</Filter>
-    </ClCompile>
     <ClCompile Include="datamanager.cpp">
       <Filter>Zdrojové soubory</Filter>
     </ClCompile>
