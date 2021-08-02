@@ -2,16 +2,24 @@
 
 struct activationFunction
 {
-	virtual double f(double a) = 0;
-	virtual double df(double a) = 0;
+	virtual double f(double) = 0;
+	virtual double df(double) = 0;
 	virtual Eigen::VectorXd a(const Eigen::VectorXd&) = 0;
 	virtual Eigen::VectorXd d(const Eigen::VectorXd&) = 0;
 };
 
 struct relu : public activationFunction
 {
-	double f(double a) override;
-	double df(double a) override;
+	double f(double) override;
+	double df(double) override;
+	Eigen::VectorXd a(const Eigen::VectorXd&) override;
+	Eigen::VectorXd d(const Eigen::VectorXd&) override;
+};
+
+struct sigmoid : public activationFunction
+{
+	double f(double) override;
+	double df(double) override;
 	Eigen::VectorXd a(const Eigen::VectorXd&) override;
 	Eigen::VectorXd d(const Eigen::VectorXd&) override;
 };

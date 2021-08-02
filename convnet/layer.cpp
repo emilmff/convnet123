@@ -27,8 +27,7 @@ void softmaxLayer::initializeWeights()
 
 Eigen::VectorXd softmaxLayer::activateZ(const Eigen::VectorXd& prev)
 {
-	Eigen::VectorXd z = (weights * prev) + biases;
-	return z;
+	return (weights * prev) + biases;
 }
 
 
@@ -58,8 +57,7 @@ void fullyConnectedLayer::initializeWeights()
 
 Eigen::VectorXd fullyConnectedLayer::activateZ(const Eigen::VectorXd& prev)
 {
-	Eigen::VectorXd z = (weights * prev) + biases;
-	return z;
+	return (weights * prev) + biases;
 }
 
 poolingLayer::poolingLayer(int prevSize)

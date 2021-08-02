@@ -30,6 +30,29 @@ Eigen::VectorXd relu::d(const Eigen::VectorXd& z)
 	return a;
 }
 
+double sigmoid::f(double a) {
+	return 1.0 / (1.0 + exp(-a));
+}
+double sigmoid::df(double a) {
+	return f(a) * (1.0 - f(a));
+}
+Eigen::VectorXd sigmoid::a(const Eigen::VectorXd& z ) {
+	Eigen::VectorXd a(z.rows());
+	for (int i = 0; i < z.rows(); ++i)
+	{
+		a(i) = f(z(i));
+	}
+	return a;
+}
+Eigen::VectorXd sigmoid::d(const Eigen::VectorXd& z) {
+	Eigen::VectorXd a(z.rows());
+	for (int i = 0; i < z.rows(); ++i)
+	{
+		a(i) = f(z(i));
+	}
+	return a;
+}
+
 cnn::cnn(std::vector<int> layerDims, int out, int convCount, int inputS, int convS, int poolingS)
 {
 	convNum = convCount;
@@ -55,14 +78,10 @@ cnn::cnn(std::vector<int> layerDims, int out, int convCount, int inputS, int con
 			}
 			break;
 		case 2:
-			for (int j = 0; j < fullyConnectedNum; j++)
-			{
-				if (j == 0) layers.at(i).push_back(new fullyConnectedLayer(poolingSize * poolingSize * convNum, layerDims.at(j)));
-				else layers.at(i).push_back(new fullyConnectedLayer(layerDims.at(j - 1), layerDims.at(j)));
-			}
+			if(fullyConnectedNum) layers.at(i).push_back(new fullyConnectedLayer(poolingSize * poolingSize * convNum, layerDims.at(0)));
 			break;
 		case 3:
-			if (fullyConnectedNum == 0) layers.at(i).push_back(new softmaxLayer(poolingSize * poolingSize * convNum, outputSize));
+			if (!fullyConnectedNum) layers.at(i).push_back(new softmaxLayer(poolingSize * poolingSize * convNum, outputSize));
 			else layers.at(i).push_back(new softmaxLayer(layerDims.back(), outputSize));
 			break;
 		}
@@ -90,10 +109,10 @@ void cnn::fillNablas()
 		nablaB.at(0).push_back(Eigen::VectorXd::Zero(layers.at(0).at(i)->biases.rows()));
 		nablaW.at(0).push_back(Eigen::MatrixXd::Zero(layers.at(0).at(i)->weights.rows(), layers.at(0).at(i)->weights.cols()));
 	}
-	for (int i = 0; i < fullyConnectedNum; ++i)
+	if (fullyConnectedNum)
 	{
-		nablaB.at(1).push_back(Eigen::VectorXd::Zero(layers.at(2).at(i)->biases.rows()));
-		nablaW.at(1).push_back(Eigen::MatrixXd::Zero(layers.at(2).at(i)->weights.rows(), layers.at(2).at(i)->weights.cols()));
+		nablaB.at(1).push_back(Eigen::VectorXd::Zero(layers.at(2).at(0)->biases.rows()));
+		nablaW.at(1).push_back(Eigen::MatrixXd::Zero(layers.at(2).at(0)->weights.rows(), layers.at(2).at(0)->weights.cols()));
 	}
 	nablaB.at(2).push_back(Eigen::VectorXd::Zero(layers.at(3).at(0)->biases.rows()));
 	nablaW.at(2).push_back(Eigen::MatrixXd::Zero(layers.at(3).at(0)->weights.rows(), layers.at(3).at(0)->weights.cols()));
@@ -122,20 +141,10 @@ std::vector<std::vector<Eigen::VectorXd>> cnn::feedForward(const Eigen::VectorXd
 			zs.at(i).push_back(z);
 			break;
 		case 2:
-			for (int j = 0; j < fullyConnectedNum; j++)
-			{
-				if (j == 0)
-				{
-					zs.at(i).push_back(layers.at(i).at(0)->activateZ(f.a(zs.at(i-1).at(0))));
-				}
-				else
-				{
-					zs.at(i).push_back(layers.at(i).at(j)->activateZ(f.a(zs.at(i).at(j - 1))));
-				}
-			}
+			if(fullyConnectedNum)zs.at(i).push_back(layers.at(i).at(0)->activateZ(f.a(zs.at(i-1).at(0))));
 			break;
 		case 3:
-			if (fullyConnectedNum == 0) zs.at(i).push_back(layers.at(i).at(0)->activateZ(f.a(zs.at(i - 2).at(0))));
+			if (!fullyConnectedNum) zs.at(i).push_back(layers.at(i).at(0)->activateZ(f.a(zs.at(i - 2).at(0))));
 			else zs.at(i).push_back(layers.at(i).at(0)->activateZ(f.a(zs.at(i - 1).back())));
 			break;
 		}
@@ -164,10 +173,10 @@ void cnn::backProp(const Eigen::VectorXd& input, const Eigen::VectorXd& output)
 {
 	std::vector<std::vector<Eigen::VectorXd>> zs = feedForward(input);
 	Eigen::VectorXd out = softmax(zs.at(3).at(0));
-	//std::cout << out.sum() << std::endl << std::endl << std::endl;
+	//std::cout << out << std::endl << std::endl << output << std::endl << std::endl;
 	Eigen::VectorXd delta = out - output;
 	nablaB.at(2).at(0) += delta;
-	if (fullyConnectedNum != 0) {
+	if (fullyConnectedNum) {
 		nablaW.at(2).at(0) += delta * f.a(zs.at(2).back()).transpose();
 		fullyConnectedBProp(input, delta, zs);
 	}
@@ -182,7 +191,7 @@ void cnn::fullyConnectedBProp(const Eigen::VectorXd& input, const Eigen::VectorX
 	Eigen::VectorXd d = (layers.at(3).at(0)->weights.transpose() * delta).cwiseProduct(f.d(zs.at(2).at(0)));
 	nablaB.at(1).at(0) += d;
 	nablaW.at(1).at(0) += d * f.a(zs.at(1).at(0)).transpose();
-	//std::cout << layers.at(2).at(0)->weights.sum()<<"\n" << "\n";
+	//std::cout << delta <<"\n" << "\n";
 	getConvNabla(getConvDelta(d, zs), input);
 }
 
@@ -264,10 +273,10 @@ void cnnImpl::updateMiniBatch(std::vector<d*>* miniBatch, double trainDataSize)
 		network->layers.at(0).at(i)->weights = (1.0 - eta * (lambda / trainDataSize)) * network->layers.at(0).at(i)->weights - (eta / miniBatch->size()) * network->nablaW.at(0).at(i);
 		network->layers.at(0).at(i)->biases -= (eta / miniBatch->size()) * network->nablaB.at(0).at(i);
 	}
-	for (int i = 0; i < network->fullyConnectedNum; ++i)
+	if(network->fullyConnectedNum)
 	{
-		network->layers.at(2).at(i)->weights = (1.0 - eta * (lambda / trainDataSize)) * network->layers.at(2).at(i)->weights - (eta / miniBatch->size()) * network->nablaW.at(1).at(i);
-		network->layers.at(2).at(i)->biases -= (eta / miniBatch->size()) * network->nablaB.at(1).at(i);
+		network->layers.at(2).at(0)->weights = (1.0 - eta * (lambda / trainDataSize)) * network->layers.at(2).at(0)->weights - (eta / miniBatch->size()) * network->nablaW.at(1).at(0);
+		network->layers.at(2).at(0)->biases -= (eta / miniBatch->size()) * network->nablaB.at(1).at(0);
 	}
 
 	network->layers.at(3).at(0)->weights = (1.0 - eta * (lambda / trainDataSize)) * network->layers.at(3).at(0)->weights - (eta / miniBatch->size()) * network->nablaW.at(2).at(0);
@@ -325,14 +334,14 @@ void cnnImpl::SGD(std::vector<d*>* trainData, std::vector<d*>* testData)
 		double score = evaulate(testData);
 		std::cout << "performance on epoch: " << j << "-" << score / (double)t << std::endl;
 		delete batches;
-		eta *= 0.98;
+		//eta *= 0.98;
 	}
 }
 
 int main()
 {
 	data* t = new data;
-	cnn* n = new cnn({100},10, 3, 28, 24,12);
+	cnn* n = new cnn({},10, 20, 28, 24,12);
 	cnnImpl* network = new cnnImpl(n, 0.03, 0.1, 60, 1);
 	network->SGD(t->getTrainingData(), t->getTestData());
 	return 0;
